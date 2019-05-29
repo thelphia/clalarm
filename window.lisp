@@ -50,66 +50,82 @@
     (ltk:pack f)
     (ltk:pack (list lab bhour lab1 bmin) :side :left)
     ))
-(defun win-date (conf parent)
-  (let* ((fdate (make-instance 'ltk:frame :master parent))
+(defun win-select-dw (parent use-wday)
+  (let* ((fselect-dw (make-instance 'ltk:frame
+                                    :master parent))
          (rdatep (make-instance 'ltk:radio-button
-                                :master fdate :variable "d-or-wday"
+                                :master fselect-dw
+                                :variable "d-or-wday"
                                 :value 0 :text "日付を使用" ))
+         (rwdayp (make-instance 'ltk:radio-button
+                                :master fselect-dw
+                                :variable "d-or-wday"
+                                :value 1 :text "曜日を使用"))
+         )
+    (ltk:pack fselect-dw :side :left)
+    (ltk:pack (list rdatep rwdayp))
+    (setf (ltk:value rwdayp) (if use-wday 1 0))
+    ))
+(defun win-date (conf parent state)
+  (let* ((fdate (make-instance 'ltk:frame :master parent))
          (emonth (make-instance 'ltk:entry
-                                :master fdate :text "month"))
+                                :master fdate :text "month"
+                                :state state))
          (edate (make-instance 'ltk:entry
-                               :master fdate :text "date"))
+                               :master fdate :text "date"
+                               :state state))
          )
     (ltk:pack fdate)
-    (ltk:pack (list rdatep emonth edate) :side :left)
+    (ltk:pack (list emonth edate) :side :left)
     ))
 (defun win-wday (conf parent state)
-  (let* ((wdaystate state)
-         (fwdays (make-instance 'ltk:frame
+  (let* ((fwdays (make-instance 'ltk:frame
                                 :master parent))
-         (rwdayp (make-instance 'ltk:radio-button
-                                :master fwdays :variable "d-or-wday"
-                                :value 1 :text "曜日を使用"))
          (rwday1 (make-instance 'ltk:check-button
                                 :master fwdays :text "月"
-                                :state wdaystate
+                                :state state
                                 :command (lambda (var)
                                            (setter 'wday conf
                                                    (list 0 var)))
                                 ))
          (rwday2 (make-instance 'ltk:check-button
                                 :master fwdays :text "火"
-                                :state wdaystate
+                                :state state
                                 :command (lambda (var)
                                            (setter 'wday conf
                                                    (list 1 var)))
                                 ))
          (rwday3 (make-instance 'ltk:check-button
                                 :master fwdays :text "水"
+                                :state state
                                 :command (lambda (var)
                                            (setter 'wday conf
                                                    (list 2 var)))
                                 ))
          (rwday4 (make-instance 'ltk:check-button
                                 :master fwdays :text "木"
+                                :state state
                                 :command (lambda (var)
                                            (setter 'wday conf
                                                    (list 3 var)))
                                 ))
          (rwday5 (make-instance 'ltk:check-button
                                 :master fwdays :text "金"
+                                :state state
                                 :command (lambda (var)
                                            (setter 'wday conf
                                                    (list 4 var)))
                                 ))
          (rwday6 (make-instance 'ltk:check-button
                                 :master fwdays :text "土"
+                                :state state
                                 :command (lambda (var)
                                            (setter 'wday conf
                                                    (list 5 var)))
                                 ))
          (rwday7 (make-instance 'ltk:check-button
                                 :master fwdays :text "日"
+                                :state state
                                 :command (lambda (var)
                                            (setter 'wday conf
                                                    (list 6 var)))
@@ -117,7 +133,7 @@
          )
     (ltk:pack fwdays)
     (ltk:pack
-     (list rwdayp rwday1 rwday2 rwday3 rwday4 rwday5 rwday6 rwday7)
+     (list rwday1 rwday2 rwday3 rwday4 rwday5 rwday6 rwday7)
      :side :left)
     ))
 (defun win-volume (conf parent)
@@ -150,35 +166,52 @@
 ;;;;;frame:add width option
 ;;window-of-alarmsettings
 (defun win-settigs
-    (&key (conf (eval (car (reverse (alarm-conf-init))))))
-  (let* ((fsetting (make-instance 'ltk:frame))
-         (csetting (make-instance 'ltk:canvas :master fsetting))
+    (parent &key (conf (eval (car (reverse (alarm-conf-init)))))
+       (use-wday t))
+  (let* ((fsetting (make-instance 'ltk:frame :master parent))
+         (fdw (make-instance 'ltk:frame :master fsetting))
+         (csetting (make-instance 'ltk:canvas :master fdw))
          )
+    (ltk:pack fsetting)
     (win-time conf fsetting)
-    (win-date conf csetting)
-    (win-wday conf csetting 'normal)
+    (ltk:pack fdw)
+    (win-select-dw fdw use-wday)
+    (ltk:pack csetting :side :left)
+    (win-date conf csetting (if use-wday 'disable 'normal))
+    (win-wday conf csetting (if use-wday 'normal 'disable))
     (win-volume conf fsetting)
     (win-buttons conf fsetting)
+    ))
+;;win-select-alarm-config
+(defun win-alarm-list (parent)
+  (let* ((clist (make-instance 'ltk:canvas :master parent))
+         (bnewconf (make-instance 'ltk:button
+                                  :master parent :text "+"
+                                  :command (+ 1 2)
+                                  ))
+         (conf-frames (make-instance 'ltk:frame :master clist))
+         )
+    (ltk:pack clist)
+    (ltk:pack conf-frames)
+    (ltk:pack bnewconf :side :bottom)
     ))
 ;;generete window
 (defun window1 ()
   (ltk:with-ltk ()
-    (let* ()
+    (let* ((winleft (make-instance 'ltk:frame))
+           (winright (make-instance 'ltk:frame))
+           (cright (make-instance 'ltk:canvas :master winright))
+           )
       (ltk:wm-title ltk:*tk* "Alarm")
-      (win-settigs)
-      (testframe)
+      (ltk:pack winleft :side :left)
+      (win-alarm-list winleft)
+      (ltk:pack winright :side :left)
+      (ltk:pack cright)
+      (win-settigs cright)
       )))
 (setf *alarm-conf-list* nil)
 
 
-(defun testframe ()
-  (let* ((ftest (make-instance 'ltk:frame))
-        (entest (make-instance 'ltk:entry
-                               :master ftest :text "testform"))
-        )
-    (ltk:pack ftest)
-    (ltk:pack entest)
-    ))
 #|
 (defun window1 ()
   (ltk:with-ltk ()
