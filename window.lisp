@@ -9,13 +9,13 @@
 (defun name-aconf ()
   (intern (concatenate 'string "ACONF"
                        (princ-to-string (get-universal-time)))))
-(defmacro alarm-conf-init ()
+(defun alarm-conf-init ()
   (let ((aconf-time (name-aconf)))
-    `(setf *alarm-conf-list*
+    (setf *alarm-conf-list*
           (reverse
-           (cons (defparameter ,aconf-time (make-alarm-conf))
-                 (reverse *alarm-conf-list*))))
-    ))
+           (cons
+            (eval (list 'defparameter aconf-time '(make-alarm-conf)))
+            (reverse *alarm-conf-list*))))))
 ;;for-setf-aconf
 (defun setter (slotname aconf n)
   (case slotname
