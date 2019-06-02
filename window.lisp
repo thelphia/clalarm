@@ -1,42 +1,55 @@
-;;window system
+;;window systemA
 (load "~/for-lisp/ltk/ltk")
-
+;;;;;;;;;;wdayが初期化されない不具合
+;;;GUI→main,time(by1sec)→main,main-read-if-do,stream経由？file経由
 ;;aconf-init
 (defstruct alarm-conf (unitime 9999999999)
-           (wday '(nil nil nil nil nil nil nil))
-           hour min month date wday-or-date music volume)
+           wday0 wday1 wday2 wday3 wday4 wday5 wday6
+           (hour 0) (min 0) month date wday-or-date
+           (music "seirei-no-uta") (volume 0))
 (defvar *alarm-conf-list* '())
 (defun name-aconf ()
   (intern (concatenate 'string "ACONF"
                        (princ-to-string (get-universal-time)))))
 (defun alarm-conf-init ()
-  (let ((aconf-time (name-aconf)))
+  (let ((aconf (name-aconf)))
     (setf *alarm-conf-list*
-          (reverse
-           (cons
-            (eval (list 'defparameter aconf-time '(make-alarm-conf)))
-            (reverse *alarm-conf-list*))))))
+          (append *alarm-conf-list*
+                  (list
+                   (eval (list 'defparameter aconf
+                               '(make-alarm-conf)))
+                   )))
+    (eval aconf)))
 ;;for-setf-aconf
 (defun setter (slotname aconf n)
   (case slotname
     (min (setf (alarm-conf-min aconf) (parse-integer n)))
     (hour (setf (alarm-conf-hour aconf) (parse-integer n)))
-    (wday (setf (nth (car n) (alarm-conf-wday aconf))
-                (if (zerop (cadr n)) nil t)))
+    (wday (let ((m (if (zerop (cadr n)) nil t)))
+            (case (car n)
+              (0 (setf (alarm-conf-wday0 aconf) m))
+              (1 (setf (alarm-conf-wday1 aconf) m))
+              (2 (setf (alarm-conf-wday2 aconf) m))
+              (3 (setf (alarm-conf-wday3 aconf) m))
+              (4 (setf (alarm-conf-wday4 aconf) m))
+              (5 (setf (alarm-conf-wday5 aconf) m))
+              (6 (setf (alarm-conf-wday6 aconf) m)))))
     (vol (setf (alarm-conf-volume aconf) (round n)))
     ))
+(defun calunitime (aconf)
+  (
 ;;wins-separated
 (defun win-time (conf parent)
   (let* ((f (make-instance 'ltk:frame :master parent))
          (bhour (make-instance 'ltk:spinbox
                               :master f :wrap t :width 2
-                              :from 0 :to 24 :increment 1 :text 12
+                              :from 0 :to 24 :increment 1 :text 0
                               :command (lambda (var)
                                          (setter 'hour conf var))
                               ))
          (bmin (make-instance 'ltk:spinbox
                               :master f :wrap t :width 2
-                              :from 0 :to 59 :increment 1 :text 18
+                              :from 0 :to 59 :increment 1 :text 0
                               :command (lambda (var)
                                          (setter 'min conf var))
                               ))
@@ -164,9 +177,10 @@
     (ltk:pack (list bunivt bshow) :side :left)
     ))
 ;;;;;frame:add width option
+;;;(conf (eval (car (reverse (alarm-conf-init)))))
 ;;window-of-alarmsettings
 (defun win-settigs
-    (parent &key (conf (eval (car (reverse (alarm-conf-init)))))
+    (parent &key (conf (alarm-conf-init))
        (use-wday t))
   (let* ((fsetting (make-instance 'ltk:frame :master parent))
          (fdw (make-instance 'ltk:frame :master fsetting))
