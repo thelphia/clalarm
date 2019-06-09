@@ -21,6 +21,28 @@
     (sleep 1)))
 (defun light-schedule ()
   (light-time-control 'max
-                      (encode-universal-time 0 49 (- 22 9) 8 6 2019)))
-
-
+                      (encode-universal-time 0 30 (- 29 9) 9 6 2019)))
+(defun read-no-hang (stream)
+  (let ((str-st (make-string-output-stream)))
+    (do ((chr (read-char-no-hang stream) (read-char-no-hang stream)))
+        ((null chr) (get-output-stream-string str-st))
+      (write-char chr str-st))))
+(defun read-socket-loop (st)
+  (loop
+     (if (listen st)
+         (case (intern (read-no-hang st))
+           (lightmax (light-max) (format t "max~%"))
+           (lightmid (light-mid) (format t "mid~%"))
+           (lightoff (light-off) (format t "off~%"))
+           (close (return-from read-socket-loop nil))))
+     (sleep 1)))
+(defun open-light-server ()
+  (with-open-socket (frsoc :local-port 7815
+                           :local-host "hayamatokine.local"
+                           :connect :passive
+                           :reuse-address t)
+    (format t "connecting")
+    (defparameter st (accept-connection frsoc))
+    (format t "connect seccess~%")
+    (read-socket-loop st)
+    (close st)))      
