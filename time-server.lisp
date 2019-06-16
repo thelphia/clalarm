@@ -5,8 +5,24 @@
     (do ((chr (read-char-no-hang stream) (read-char-no-hang stream)))
         ((null chr) (get-output-stream-string str-st))
       (write-char chr str-st))))
-
-
+(defun send-alarmserver (&key (vol 30) (musicsorce "seirei-no-uta"))
+  (with-open-socket (aserver :local-host
+                             :local-port
+                             :connect :active
+                             :reuse-address t)
+    (format aserver "~a~a" vol musicsorce)
+    (finish-output aserver)))
+(defun send-lightserver (lightstate)
+  (with-open-socket (lserver :local-host
+                             :local-port
+                             :connect :active
+                             :reuse-addresst)
+    (format lserver "LIGHT~a"
+            (case lightstate
+              (max 'MAX)
+              (off 'OFF)
+              (mid 'MID)))
+    (finish-output lserver)))
 (defun with-timeservser ()
   (with-open-socket (tserver :local-host "localhost"
                              :local-port 5001
